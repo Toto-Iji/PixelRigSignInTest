@@ -40,7 +40,7 @@
         // 1. Initialize Supabase
         const SUPABASE_URL = 'https://zrilkyxisplfanzloauu.supabase.co'; // Your actual URL
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyaWxreXhpc3BsZmFuemxvYXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4MjE3NTUsImV4cCI6MjA3MzM5Nzc1NX0.7EoKEemphqyTZ7YAbXJF3EKqrxahXWpz8yLu_k-iSiY'; // Put your Anon Key here!
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // UI Elements
         const loadingUi = document.getElementById('loading-ui');
