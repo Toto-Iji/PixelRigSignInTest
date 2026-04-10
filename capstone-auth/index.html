@@ -65,7 +65,7 @@
                 // For now, it will redirect back to this exact page.
                 await supabase.auth.signInWithOAuth({
                     provider: 'google',
-                    options: { redirectTo: window.location.href } 
+                    options: { redirectTo: 'https://project-y2dvc.vercel.app' } 
                 });
             }
         }
