@@ -51,7 +51,7 @@
         // 2. The Main Logic Loop
         async function checkSession() {
             // Check if Supabase just redirected back here with a Google Token
-            const { data: { session }, error } = await supabase.auth.getSession();
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
 
             if (session) {
                 // They are logged in with Google! Show the password prompt.
@@ -61,16 +61,14 @@
                 // No session? Force them to log in with Google immediately.
                 loadingUi.innerHTML = "<h2>Redirecting to Google...</h2>";
                 
-                // IMPORTANT: Change the redirectUrl to your Vercel URL once you deploy!
-                // For now, it will redirect back to this exact page.
-                await supabase.auth.signInWithOAuth({
+                await supabaseClient.auth.signInWithOAuth({
                     provider: 'google',
                     options: { redirectTo: 'https://project-y2dvc.vercel.app' } 
                 });
             }
         }
 
-        // 3. The Bind Function (What you just tested in Godot!)
+        // 3. The Bind Function
         async function bindPassword() {
             const newPassword = document.getElementById('game-password').value;
             if (newPassword.length < 6) {
@@ -80,7 +78,7 @@
 
             errorMsg.innerText = "Saving...";
             
-            const { data, error } = await supabase.auth.updateUser({
+            const { data, error } = await supabaseClient.auth.updateUser({
                 password: newPassword
             });
 
@@ -88,7 +86,7 @@
                 errorMsg.innerText = "Error: " + error.message;
             } else {
                 // Success! Show the final screen and log them out of the web portal.
-                await supabase.auth.signOut();
+                await supabaseClient.auth.signOut();
                 passwordUi.classList.add('hidden');
                 successUi.classList.remove('hidden');
             }
