@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Game Account</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a2e; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background-color: #16213e; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-align: center; max-width: 400px; width: 100%; }
+        input { width: 90%; padding: 10px; margin: 15px 0; border-radius: 5px; border: none; background: #0f3460; color: white; outline: none; }
+        button { background-color: #e94560; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        button:hover { background-color: #ff577f; }
+        .hidden { display: none; }
+        .success-text { color: #4ade80; font-weight: bold; font-size: 1.2em; }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="loading-ui">
+        <h2>Connecting to Server...</h2>
+        <p>Please wait.</p>
+    </div>
+
+    <div class="container hidden" id="password-ui">
+        <h2>Google Account Linked!</h2>
+        <p>Please create a game password. You will use this to log directly into the game on Itch.io.</p>
+        <input type="password" id="game-password" placeholder="Enter a secure password...">
+        <button onclick="bindPassword()">Set Game Password</button>
+        <p id="error-msg" style="color: #ff577f; margin-top: 10px;"></p>
+    </div>
+
+    <div class="container hidden" id="success-ui">
+        <h2 class="success-text">✅ Account Ready!</h2>
+        <p>Your password is set.</p>
+        <p><b>You can safely close this tab and return to the game.</b></p>
+    </div>
+
+    <script>
+        // 1. Initialize Supabase
+        const SUPABASE_URL = 'https://zrilkyxisplfanzloauu.supabase.co'; // Your actual URL
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyaWxreXhpc3BsZmFuemxvYXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4MjE3NTUsImV4cCI6MjA3MzM5Nzc1NX0.7EoKEemphqyTZ7YAbXJF3EKqrxahXWpz8yLu_k-iSiY'; // Put your Anon Key here!
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // UI Elements
+        const loadingUi = document.getElementById('loading-ui');
+        const passwordUi = document.getElementById('password-ui');
+        const successUi = document.getElementById('success-ui');
+        const errorMsg = document.getElementById('error-msg');
+
+        // 2. The Main Logic Loop
+        async function checkSession() {
+            // Check if Supabase just redirected back here with a Google Token
+            const { data: { session }, error } = await supabase.auth.getSession();
+
+            if (session) {
+                // They are logged in with Google! Show the password prompt.
+                loadingUi.classList.add('hidden');
+                passwordUi.classList.remove('hidden');
+            } else {
+                // No session? Force them to log in with Google immediately.
+                loadingUi.innerHTML = "<h2>Redirecting to Google...</h2>";
+                
+                // IMPORTANT: Change the redirectUrl to your Vercel URL once you deploy!
+                // For now, it will redirect back to this exact page.
+                await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: window.location.href } 
+                });
+            }
+        }
+
+        // 3. The Bind Function (What you just tested in Godot!)
+        async function bindPassword() {
+            const newPassword = document.getElementById('game-password').value;
+            if (newPassword.length < 6) {
+                errorMsg.innerText = "Password must be at least 6 characters.";
+                return;
+            }
+
+            errorMsg.innerText = "Saving...";
+            
+            const { data, error } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+
+            if (error) {
+                errorMsg.innerText = "Error: " + error.message;
+            } else {
+                // Success! Show the final screen and log them out of the web portal.
+                await supabase.auth.signOut();
+                passwordUi.classList.add('hidden');
+                successUi.classList.remove('hidden');
+            }
+        }
+
+        // Run the check as soon as the page loads
+        checkSession();
+    </script>
+</body>
+</html>
