@@ -58,28 +58,37 @@
 
         // 2. The Main Logic Loop
         async function checkSession() {
+            // This grabs the session and handles the Google redirect
             const { data: { session }, error } = await supabaseClient.auth.getSession();
 
             if (session) {
                 loadingUi.classList.add('hidden');
 
-                // 🟢 THE FIX: Timestamp Comparison
-                const createdAt = new Date(session.user.created_at).getTime();
-                const lastSignIn = new Date(session.user.last_sign_in_at).getTime();
-                
-                // If the sign-in happened more than 10 seconds after account creation, 
-                // they are a returning player!
-                const isReturningUser = (lastSignIn - createdAt) > 10000; 
-                
-                if (isReturningUser) {
-                    // THEY ALREADY HAVE AN ACCOUNT
-                    existingUi.classList.remove('hidden');
+                // 🚨 CRITICAL FIX: Fetch fresh user data directly from the server!
+                // This bypasses the stale local storage cache.
+                const { data: { user } } = await supabaseClient.auth.getUser();
+
+                if (user) {
+                    const createdAt = new Date(user.created_at).getTime();
+                    const lastSignIn = new Date(user.last_sign_in_at).getTime();
                     
-                    // Sign them out of the web portal
-                    await supabaseClient.auth.signOut(); 
-                } else {
-                    // BRAND NEW ACCOUNT
-                    passwordUi.classList.remove('hidden');
+                    // Print the exact times to the F12 developer console so you can see it!
+                    console.log("Account Created At: ", new Date(createdAt).toLocaleTimeString());
+                    console.log("This Login At: ", new Date(lastSignIn).toLocaleTimeString());
+                    
+                    // If the sign-in happened more than 10 seconds after creation
+                    const isReturningUser = (lastSignIn - createdAt) > 10000; 
+                    
+                    if (isReturningUser) {
+                        // THEY ALREADY HAVE AN ACCOUNT
+                        existingUi.classList.remove('hidden');
+                        
+                        // Sign them out of the web portal
+                        await supabaseClient.auth.signOut(); 
+                    } else {
+                        // BRAND NEW ACCOUNT
+                        passwordUi.classList.remove('hidden');
+                    }
                 }
             } else {
                 // No session? Force them to log in with Google immediately.
