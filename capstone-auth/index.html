@@ -55,22 +55,32 @@
         const successUi = document.getElementById('success-ui');
         const errorMsg = document.getElementById('error-msg');
 
-        // 2. Check for the custom sticker!
+        // 2. The Main Logic Loop
         async function checkSession() {
             const { data: { session }, error } = await supabaseClient.auth.getSession();
 
             if (session) {
                 loadingUi.classList.add('hidden');
 
-                // Grab fresh user data to bypass the cache
+                // Grab the absolute freshest data from the server
                 const { data: { user } } = await supabaseClient.auth.getUser();
 
-                // 🟢 THE BULLETPROOF CHECK: Look for our custom metadata tag
-                if (user && user.user_metadata && user.user_metadata.has_game_password === true) {
-                    existingUi.classList.remove('hidden');
-                    await supabaseClient.auth.signOut(); 
-                } else {
-                    passwordUi.classList.remove('hidden');
+                if (user) {
+                    const createdAt = new Date(user.created_at).getTime();
+                    const lastSignIn = new Date(user.last_sign_in_at).getTime();
+                    
+                    // The Math: If the current login happened more than 2 minutes (120,000 ms) 
+                    // after the account was first created, they are a returning player!
+                    const timeDifference = lastSignIn - createdAt;
+                    
+                    if (timeDifference > 120000) {
+                        // RETURNING PLAYER
+                        existingUi.classList.remove('hidden');
+                        await supabaseClient.auth.signOut(); 
+                    } else {
+                        // BRAND NEW PLAYER (Within their first 2 minutes)
+                        passwordUi.classList.remove('hidden');
+                    }
                 }
             } else {
                 loadingUi.innerHTML = "<h2>Redirecting to Google...</h2>";
