@@ -73,7 +73,7 @@
                     // after the account was first created, they are a returning player!
                     const timeDifference = lastSignIn - createdAt;
                     
-                    if (timeDifference > 120000) {
+                    if (timeDifference > 5000) {
                         // RETURNING PLAYER
                         existingUi.classList.remove('hidden');
                         await supabaseClient.auth.signOut(); 
