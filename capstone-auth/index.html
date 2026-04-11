@@ -13,6 +13,7 @@
         button:hover { background-color: #ff577f; }
         .hidden { display: none; }
         .success-text { color: #4ade80; font-weight: bold; font-size: 1.2em; }
+        .info-text { color: #38bdf8; font-weight: bold; font-size: 1.2em; }
     </style>
 </head>
 <body>
@@ -30,6 +31,12 @@
         <p id="error-msg" style="color: #ff577f; margin-top: 10px;"></p>
     </div>
 
+    <div class="container hidden" id="existing-ui">
+        <h2 class="info-text">Account Already Set Up!</h2>
+        <p>Your Google account already has a game password linked to it.</p>
+        <p><b>You can safely close this tab and log in directly from the game's login screen.</b></p>
+    </div>
+
     <div class="container hidden" id="success-ui">
         <h2 class="success-text">✅ Account Ready!</h2>
         <p>Your password is set.</p>
@@ -38,25 +45,37 @@
 
     <script>
         // 1. Initialize Supabase
-        const SUPABASE_URL = 'https://zrilkyxisplfanzloauu.supabase.co'; // Your actual URL
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyaWxreXhpc3BsZmFuemxvYXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4MjE3NTUsImV4cCI6MjA3MzM5Nzc1NX0.7EoKEemphqyTZ7YAbXJF3EKqrxahXWpz8yLu_k-iSiY'; // Put your Anon Key here!
+        const SUPABASE_URL = 'https://zrilkyxisplfanzloauu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyaWxreXhpc3BsZmFuemxvYXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4MjE3NTUsImV4cCI6MjA3MzM5Nzc1NX0.7EoKEemphqyTZ7YAbXJF3EKqrxahXWpz8yLu_k-iSiY';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // UI Elements
         const loadingUi = document.getElementById('loading-ui');
         const passwordUi = document.getElementById('password-ui');
+        const existingUi = document.getElementById('existing-ui');
         const successUi = document.getElementById('success-ui');
         const errorMsg = document.getElementById('error-msg');
 
         // 2. The Main Logic Loop
         async function checkSession() {
-            // Check if Supabase just redirected back here with a Google Token
             const { data: { session }, error } = await supabaseClient.auth.getSession();
 
             if (session) {
-                // They are logged in with Google! Show the password prompt.
                 loadingUi.classList.add('hidden');
-                passwordUi.classList.remove('hidden');
+
+                // Check if they already have an email/password identity set up
+                const providers = session.user.app_metadata.providers || [];
+                
+                if (providers.includes('email')) {
+                    // THEY ALREADY HAVE A PASSWORD
+                    existingUi.classList.remove('hidden');
+                    
+                    // Sign them out of the web portal so the browser doesn't get stuck logged in forever
+                    await supabaseClient.auth.signOut(); 
+                } else {
+                    // THEY ARE BRAND NEW
+                    passwordUi.classList.remove('hidden');
+                }
             } else {
                 // No session? Force them to log in with Google immediately.
                 loadingUi.innerHTML = "<h2>Redirecting to Google...</h2>";
