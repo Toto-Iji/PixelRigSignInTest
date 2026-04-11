@@ -45,55 +45,35 @@
 
     <script>
         // 1. Initialize Supabase
-        const SUPABASE_URL = 'https://zrilkyxisplfanzloauu.supabase.co';
+        const SUPABASE_URL = 'https://zrilkyxisplfanzloauu.supabase.co'; 
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyaWxreXhpc3BsZmFuemxvYXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4MjE3NTUsImV4cCI6MjA3MzM5Nzc1NX0.7EoKEemphqyTZ7YAbXJF3EKqrxahXWpz8yLu_k-iSiY';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // UI Elements
         const loadingUi = document.getElementById('loading-ui');
         const passwordUi = document.getElementById('password-ui');
         const existingUi = document.getElementById('existing-ui');
         const successUi = document.getElementById('success-ui');
         const errorMsg = document.getElementById('error-msg');
 
-        // 2. The Main Logic Loop
+        // 2. Check for the custom sticker!
         async function checkSession() {
-            // This grabs the session and handles the Google redirect
             const { data: { session }, error } = await supabaseClient.auth.getSession();
 
             if (session) {
                 loadingUi.classList.add('hidden');
 
-                // 🚨 CRITICAL FIX: Fetch fresh user data directly from the server!
-                // This bypasses the stale local storage cache.
+                // Grab fresh user data to bypass the cache
                 const { data: { user } } = await supabaseClient.auth.getUser();
 
-                if (user) {
-                    const createdAt = new Date(user.created_at).getTime();
-                    const lastSignIn = new Date(user.last_sign_in_at).getTime();
-                    
-                    // Print the exact times to the F12 developer console so you can see it!
-                    console.log("Account Created At: ", new Date(createdAt).toLocaleTimeString());
-                    console.log("This Login At: ", new Date(lastSignIn).toLocaleTimeString());
-                    
-                    // If the sign-in happened more than 10 seconds after creation
-                    const isReturningUser = (lastSignIn - createdAt) > 10000; 
-                    
-                    if (isReturningUser) {
-                        // THEY ALREADY HAVE AN ACCOUNT
-                        existingUi.classList.remove('hidden');
-                        
-                        // Sign them out of the web portal
-                        await supabaseClient.auth.signOut(); 
-                    } else {
-                        // BRAND NEW ACCOUNT
-                        passwordUi.classList.remove('hidden');
-                    }
+                // 🟢 THE BULLETPROOF CHECK: Look for our custom metadata tag
+                if (user && user.user_metadata && user.user_metadata.has_game_password === true) {
+                    existingUi.classList.remove('hidden');
+                    await supabaseClient.auth.signOut(); 
+                } else {
+                    passwordUi.classList.remove('hidden');
                 }
             } else {
-                // No session? Force them to log in with Google immediately.
                 loadingUi.innerHTML = "<h2>Redirecting to Google...</h2>";
-                
                 await supabaseClient.auth.signInWithOAuth({
                     provider: 'google',
                     options: { redirectTo: 'https://project-y2dvc.vercel.app' } 
@@ -101,7 +81,7 @@
             }
         }
 
-        // 3. The Bind Function
+        // 3. Inject the sticker while saving the password!
         async function bindPassword() {
             const newPassword = document.getElementById('game-password').value;
             if (newPassword.length < 6) {
@@ -111,21 +91,21 @@
 
             errorMsg.innerText = "Saving...";
             
+            // 🟢 THE INJECTION: We save the password AND our custom tag
             const { data, error } = await supabaseClient.auth.updateUser({
-                password: newPassword
+                password: newPassword,
+                data: { has_game_password: true } // Slapping the sticker on the account
             });
 
             if (error) {
                 errorMsg.innerText = "Error: " + error.message;
             } else {
-                // Success! Show the final screen and log them out of the web portal.
                 await supabaseClient.auth.signOut();
                 passwordUi.classList.add('hidden');
                 successUi.classList.remove('hidden');
             }
         }
 
-        // Run the check as soon as the page loads
         checkSession();
     </script>
 </body>
