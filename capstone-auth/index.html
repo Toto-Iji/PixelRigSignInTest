@@ -63,17 +63,22 @@
             if (session) {
                 loadingUi.classList.add('hidden');
 
-                // Check if they already have an email/password identity set up
-                const providers = session.user.app_metadata.providers || [];
+                // 🟢 THE FIX: Timestamp Comparison
+                const createdAt = new Date(session.user.created_at).getTime();
+                const lastSignIn = new Date(session.user.last_sign_in_at).getTime();
                 
-                if (providers.includes('email')) {
-                    // THEY ALREADY HAVE A PASSWORD
+                // If the sign-in happened more than 10 seconds after account creation, 
+                // they are a returning player!
+                const isReturningUser = (lastSignIn - createdAt) > 10000; 
+                
+                if (isReturningUser) {
+                    // THEY ALREADY HAVE AN ACCOUNT
                     existingUi.classList.remove('hidden');
                     
-                    // Sign them out of the web portal so the browser doesn't get stuck logged in forever
+                    // Sign them out of the web portal
                     await supabaseClient.auth.signOut(); 
                 } else {
-                    // THEY ARE BRAND NEW
+                    // BRAND NEW ACCOUNT
                     passwordUi.classList.remove('hidden');
                 }
             } else {
