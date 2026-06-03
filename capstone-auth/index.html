@@ -113,6 +113,11 @@
                 await supabaseClient.auth.signOut();
                 passwordUi.classList.add('hidden');
                 successUi.classList.remove('hidden');
+                
+                // Wait 2 seconds so they see the success message, then kill the tab
+                setTimeout(() => {
+                    window.close();
+                }, 2000);
             }
         }
 
