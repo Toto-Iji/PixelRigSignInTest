@@ -74,13 +74,17 @@
                     const timeDifference = lastSignIn - createdAt;
                     
                     if (timeDifference > 5000) {
-                        // RETURNING PLAYER
-                        existingUi.classList.remove('hidden');
-                        await supabaseClient.auth.signOut(); 
-                    } else {
-                        // BRAND NEW PLAYER (Within their first 2 minutes)
-                        passwordUi.classList.remove('hidden');
-                    }
+                    // RETURNING PLAYER
+                    existingUi.classList.remove('hidden');
+                    await supabaseClient.auth.signOut(); 
+                    
+                    // Auto-close for existing users
+                    setTimeout(() => {
+                        window.close();
+                    }, 2000); // 2 second delay to read the message
+                } else {
+                    // BRAND NEW PLAYER
+                    passwordUi.classList.remove('hidden');
                 }
             } else {
                 loadingUi.innerHTML = "<h2>Redirecting to Google...</h2>";
