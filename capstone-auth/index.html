@@ -55,6 +55,20 @@
         const successUi = document.getElementById('success-ui');
         const errorMsg = document.getElementById('error-msg');
 
+        // Helper function: Attempts to close the tab, provides manual button if blocked
+        function attemptClose(textElementId, buttonElementId) {
+            setTimeout(() => {
+                window.close();
+                
+                // If the script reaches here, the browser blocked the auto-close.
+                // We wait a tiny bit longer and then show the manual close UI.
+                setTimeout(() => {
+                    document.getElementById(textElementId).innerHTML = "<b>You can now safely close this tab and return to the game.</b>";
+                    document.getElementById(buttonElementId).classList.remove('hidden');
+                }, 500);
+            }, 2000); 
+        }
+
         // 2. The Main Logic Loop
         async function checkSession() {
             const { data: { session }, error } = await supabaseClient.auth.getSession();
@@ -69,22 +83,21 @@
                     const createdAt = new Date(user.created_at).getTime();
                     const lastSignIn = new Date(user.last_sign_in_at).getTime();
                     
-                    // The Math: If the current login happened more than 2 minutes (120,000 ms) 
+                    // The Math: If the current login happened more than 5 seconds (5000 ms) 
                     // after the account was first created, they are a returning player!
                     const timeDifference = lastSignIn - createdAt;
                     
                     if (timeDifference > 5000) {
-                    // RETURNING PLAYER
-                    existingUi.classList.remove('hidden');
-                    await supabaseClient.auth.signOut(); 
-                    
-                    // Auto-close for existing users
-                    setTimeout(() => {
-                        window.close();
-                    }, 2000); // 2 second delay to read the message
-                } else {
-                    // BRAND NEW PLAYER
-                    passwordUi.classList.remove('hidden');
+                        // RETURNING PLAYER
+                        existingUi.classList.remove('hidden');
+                        await supabaseClient.auth.signOut(); 
+                        
+                        // Attempt to auto-close the tab
+                        attemptClose('existing-close-text', 'manual-close-existing');
+                    } else {
+                        // BRAND NEW PLAYER (Within their first 5 seconds)
+                        passwordUi.classList.remove('hidden');
+                    }
                 }
             } else {
                 loadingUi.innerHTML = "<h2>Redirecting to Google...</h2>";
@@ -95,7 +108,7 @@
             }
         }
 
-        // 3. Inject the sticker while saving the password!
+        // 3. Inject the sticker while saving the password
         async function bindPassword() {
             const newPassword = document.getElementById('game-password').value;
             if (newPassword.length < 6) {
@@ -105,10 +118,10 @@
 
             errorMsg.innerText = "Saving...";
             
-            // 🟢 THE INJECTION: We save the password AND our custom tag
+            // THE INJECTION: We save the password AND our custom tag
             const { data, error } = await supabaseClient.auth.updateUser({
                 password: newPassword,
-                data: { has_game_password: true } // Slapping the sticker on the account
+                data: { has_game_password: true } 
             });
 
             if (error) {
@@ -118,10 +131,8 @@
                 passwordUi.classList.add('hidden');
                 successUi.classList.remove('hidden');
                 
-                // Wait 2 seconds so they see the success message, then kill the tab
-                setTimeout(() => {
-                    window.close();
-                }, 2000);
+                // Attempt to auto-close the tab
+                attemptClose('success-close-text', 'manual-close-success');
             }
         }
 
